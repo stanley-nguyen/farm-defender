@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 
@@ -9,13 +8,25 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private float moveSpeed;
 
-    [SerializeField]
-    private float health, maxHealth = 5f;
+    public float health, maxHealth = 5f;
+
+    public FloatingHealthBar healthBar;
+    public Vector3 hpOffset;
 
     [SerializeField]
-    private FloatingHealthBar healthBar;
+    private Vector2 horizontalBounds;
+
+    [SerializeField]
+    private Vector2 verticalBounds;
+
+    public Camera cam;
+
+    private AudioManager audioManager;
+
+    private FarmHealth farmHealth;
 
     public GameOverManager gameOverManager;
+    public PlayerRespawn playerRespawn;
 
     private Rigidbody2D rb2d;
     private Animator anim;
@@ -32,10 +43,21 @@ public class PlayerController : MonoBehaviour
         healthBar = GetComponentInChildren<FloatingHealthBar>();    
         triangle = GetComponentInChildren<DirectionIndicator>();
         triangle.transform.localPosition = aimDirection / 1.5f;
+
+        audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
+
+        farmHealth = FindObjectOfType<FarmHealth>();
+        farmHealth.SetMaxHealth(100);
+
+        ScoreManager.instance.currentScore = 0;
+        InvokeRepeating(nameof(UpdateScore), 1, 1);
     }
 
     private void Update()
     {
+        Vector3 screenPos = cam.WorldToScreenPoint(transform.position);
+        healthBar.transform.position = screenPos + hpOffset;
+
         horizontalAxis = Input.GetAxisRaw("Horizontal");
         verticalAxis = Input.GetAxisRaw("Vertical");
         if (horizontalAxis != 0 || verticalAxis != 0)
@@ -50,7 +72,15 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        rb2d.velocity = new Vector2(horizontalAxis * moveSpeed, verticalAxis * moveSpeed);
+        float horizontalVel = horizontalAxis * moveSpeed;
+        float verticalVel = verticalAxis * moveSpeed;
+        rb2d.velocity = new Vector2(horizontalVel, verticalAxis * moveSpeed);
+        if (transform.position.x < horizontalBounds.x && horizontalVel < 0 || transform.position.x > horizontalBounds.y && horizontalVel > 0)
+            rb2d.velocity = new Vector2(0, verticalVel);
+
+        if (transform.position.y < verticalBounds.x && verticalVel < 0 || transform.position.y > verticalBounds.y && verticalVel > 0)
+            rb2d.velocity = new Vector2(horizontalVel, 0);
+
         aimDirection = new Vector3(horizontalAxis, verticalAxis, 0).normalized;
         if (aimDirection != Vector3.zero)
         {
@@ -69,6 +99,8 @@ public class PlayerController : MonoBehaviour
     {
         health -= damage;
         healthBar.UpdateHealthBar(health, maxHealth);
+
+        audioManager.PlaySFX(audioManager.playerHit, 1f);
         
         if (health <= 0)
         {
@@ -76,9 +108,19 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    public void FarmTakeDamage(int damage)
+    {
+        farmHealth.TakeDamage(damage);
+    }
+
     private void Die()
     {
-        Destroy(gameObject);
-        gameOverManager.ShowGameOver();
+        gameObject.SetActive(false);
+        playerRespawn.ShowRespawn();
+    }
+
+    private void UpdateScore()
+    {
+        ScoreManager.instance.currentScore += 10;
     }
 }

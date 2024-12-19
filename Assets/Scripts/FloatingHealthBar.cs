@@ -8,14 +8,15 @@ public class FloatingHealthBar : MonoBehaviour
     [SerializeField]
     private Slider slider;
 
+    [SerializeField]
+    private Gradient gradient;
+
+    [SerializeField]
+    private Image fill;
+
     public void UpdateHealthBar(float value, float maxValue)
     {
         slider.value = value / maxValue;
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
+        fill.color = gradient.Evaluate(slider.value);
     }
 }

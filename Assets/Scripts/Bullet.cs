@@ -6,9 +6,10 @@ public class Bullet : MonoBehaviour
 {
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.GetComponent<EnemyController>())
+        EnemyController enemy = collision.GetComponent<EnemyController>();
+        if (enemy)
         {
-            Destroy(collision.gameObject);
+            enemy.health -= 1;
             Destroy(gameObject);
         }
     }

@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerShoot : MonoBehaviour
@@ -14,11 +13,17 @@ public class PlayerShoot : MonoBehaviour
     [SerializeField]
     private float bulletSpeed;
 
+    public int maxMines = 5;
+    [HideInInspector]
+    public int mineCount = 0;
+
+    private AudioManager audioManager;
+
     private Transform gunPos;
 
     private PlayerController player;
 
-    private Vector3 shootDirection;
+    private Vector3 shootDirection = new Vector3(0, 1, 0);
 
     private GameObject gunObj;
     private bool isGunActive;
@@ -29,6 +34,8 @@ public class PlayerShoot : MonoBehaviour
         gunPos = transform.Find("GunPos");
 
         gunObj = transform.Find("Gun").gameObject;
+
+        audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
     }
 
     private void Update()
@@ -52,11 +59,19 @@ public class PlayerShoot : MonoBehaviour
             GameObject bullet = Instantiate(bulletPrefab, gunPos.position, transform.rotation);
             Rigidbody2D rigid = bullet.GetComponent<Rigidbody2D>();
 
+            audioManager.PlaySFX(audioManager.gunShot, 0.6f);
+
             rigid.velocity = shootDirection.normalized * bulletSpeed;
+
+            Destroy(bullet, 2f);
         }
         else
         {
-            GameObject mine = Instantiate(minePrefab, gunPos.position, Quaternion.identity);
+            if (mineCount < 5)
+            {
+                Instantiate(minePrefab, gunPos.position, Quaternion.identity);
+                mineCount++;
+            }
         }
     }
 }
